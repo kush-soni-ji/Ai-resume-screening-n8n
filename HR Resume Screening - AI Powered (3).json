@@ -1,0 +1,946 @@
+{
+  "name": "HR Resume Screening - AI Powered",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        272
+      ],
+      "id": "d4dbf714-f47a-41b4-8071-6e45e36b4569",
+      "name": "OpenRouter Chat Model"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=Thank you {{ $('Job Application Form').item.json['Full Name'] }}! Your application has been received. Your Submission ID is APP-{{ $('Parse AI Response').item.json.submission_id }}. We will get back to you within 3 business days.",
+        "options": {}
+      },
+      "id": "7e02629b-7c53-4e93-9733-31aa390a6b7f",
+      "name": "Form Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        4960,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "name",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "id": "dc4231e1-26e2-462a-be1e-8720d23579f8",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        4736,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "text": "=*🟢 New Shortlisted Candidate!*\n\n*Name:* {{ $('Parse AI Response').item.json.candidate_name }}\n*Position:* {{ $('Parse AI Response').item.json.job_position }}\n*AI Score:* {{ $('Parse AI Response').item.json.ai_score }}/10 ({{ $('Parse AI Response').item.json.match_percentage }}% match)\n*Experience:* {{ $('Parse AI Response').item.json.years_experience }} years\n*Email:* {{ $('Parse AI Response').item.json.candidate_email }}\n\n*Strengths:*\n{{ $('Parse AI Response').item.json.strengths }}\n\n*Recruiter Summary:*\n{{ $('Parse AI Response').item.json.summary }}\n\n*Recommended Interview:* {{ $('Parse AI Response').item.json.interview_type }}\n*Submission ID:* {{ $('Parse AI Response').item.json.submission_id }}",
+        "otherOptions": {}
+      },
+      "id": "e04d23f8-16ee-4784-8c5a-5fc9c92bcef2",
+      "name": "Slack HR Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        4496,
+        160
+      ],
+      "webhookId": "e2b421d7-ebc5-4304-9af9-b699e75d760a",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "jqz7nkh6PonquPLz",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// AI response \"output\" field mein string hai\nconst rawOutput = $input.item.json.output;\n\nlet parsed;\ntry {\n  const cleaned = rawOutput.replace(/```json|```/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = {\n    score: 0,\n    decision: 'REJECTED',\n    match_percentage: 0,\n    strengths: [],\n    gaps: ['Error parsing AI response'],\n    summary: 'Could not analyze resume. Manual review needed.',\n    recommended_interview_type: 'None'\n  };\n}\n\n// Form se candidate info\nconst candidateName    = $('Job Application Form').item.json['Full Name'];\nconst candidateEmail   = $('Job Application Form').item.json['Email Address'];\nconst candidatePhone   = $('Job Application Form').item.json['Phone Number'] || 'N/A';\nconst jobPosition      = $('Job Application Form').item.json['Job Position Applied For'];\nconst yearsExp         = $('Job Application Form').item.json['Years of Experience'];\n\nconst submissionId = 'APP-' + Date.now();\nconst submittedAt  = new Date().toISOString();\n\nreturn {\n  submission_id:      submissionId,\n  candidate_name:     candidateName,\n  candidate_email:    candidateEmail,\n  candidate_phone:    candidatePhone,\n  job_position:       jobPosition,\n  years_experience:   yearsExp,\n  submitted_at:       submittedAt,\n\n  ai_score:           parsed.score,\n  decision:           parsed.decision,\n  match_percentage:   parsed.match_percentage,\n  strengths:          parsed.strengths.join(' | '),\n  gaps:               parsed.gaps.join(' | '),\n  summary:            parsed.summary,\n  interview_type:     parsed.recommended_interview_type\n};"
+      },
+      "id": "f737da38-3d85-46d3-9436-09d1c1044803",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "fa64096d-ae75-4190-823b-78643ac9e54d",
+      "name": "Merge Resume + JD",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -3184,
+        -528
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1M7caHCFxL4hK-8dnQJMEO0hvs4RM7Rm8WaxxQd4kQjg",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "JobDescriptions",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Job Title",
+              "lookupValue": "={{ $('Job Application Form').item.json['Job Position Applied For'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4e21db0a-297d-43da-8912-55bdb775bcde",
+      "name": "Get Job Description",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -3408,
+        -416
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "UbFcNVTeyNkHPqpi",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "=Resume__PDF_",
+        "options": {}
+      },
+      "id": "03907da2-c94f-44a7-9d98-58c9c4b80015",
+      "name": "Extract Resume Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -3408,
+        -608
+      ]
+    },
+    {
+      "parameters": {
+        "path": "feea57f2-2b20-4a5f-84d4-7405e8b41c76",
+        "formTitle": "Job Application Form",
+        "formDescription": "Apply for open positions at our company",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email Address",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Phone Number"
+            },
+            {
+              "fieldLabel": "Job Position Applied For",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Resume (PDF)",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf,.doc,.docx",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Years of Experience",
+              "fieldType": "number",
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "aeb4010b-abc3-4587-ac48-ec9bfde0d950",
+      "name": "Job Application Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2,
+      "position": [
+        -3632,
+        -528
+      ],
+      "webhookId": "feea57f2-2b20-4a5f-84d4-7405e8b41c76"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "condition_shortlisted",
+              "leftValue": "={{ $json.ai_score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a602b6b9-77c2-4902-b200-37434f3c5c26",
+      "name": "Score >= 7?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a96fd018-9a90-449a-9498-33104fce922d",
+              "leftValue": "={{ $json.ai_score }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1264,
+        544
+      ],
+      "id": "006127ee-e8eb-4072-9516-d1e97fd53c0f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cb79ddc4-8352-4e51-a44e-a0ee5ceb997b",
+              "leftValue": "={{ $json.ai_score }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "d59b104b-eb08-43da-ac9b-b9ea1dbc539f",
+              "leftValue": "={{ $json.ai_score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        336
+      ],
+      "id": "37f8ed3a-1471-4d55-a382-9c5a15092eb2",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.candidate_email }}",
+        "subject": "=Interview Invitation - {{ $json.job_position }} at Our Company",
+        "message": "=<html> <body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;'>   <div style='background: #2c3e50; color: white; padding: 24px; border-radius: 8px 8px 0 0;'>     <h2 style='margin:0;'>Update on your Application: {{ $json.candidate_name }}</h2>   </div>      <div style='padding: 24px; background: #fdfdfd; border: 1px solid #ddd; border-radius: 0 0 8px 8px;'>     <p>Dear <strong>{{ $json.candidate_name }}</strong>,</p>          <p>Thank you for applying for the <strong>{{ $json.job_position }}</strong> position. Our team has reviewed your profile carefully.</p>          <p>While we found your background impressive, we noticed some areas where your current skills could be further aligned with our specific requirements, particularly in:</p>          <div style='background: #fff3e0; border-left: 4px solid #ff9800; padding: 12px; margin: 16px 0;'>       <p style='margin:0; color: #e65100;'><strong>Identified Skill Gaps:</strong><br>       {{ $json.gaps }}</p>     </div>      <p>However, based on our company policy and your potential, we are pleased to inform you that you have been placed in our <strong>Merit List 2 (Waitlist)</strong>.</p>          <div style='background: #e3f2fd; border-left: 4px solid #2196f3; padding: 16px; margin: 16px 0;'>       <p style='margin:0;'><strong>What this means:</strong> As soon as a seat becomes available or our next hiring phase begins, our team will reach out to you directly via mail to schedule an interview.</p>     </div>      <p>We appreciate your interest in joining us and encourage you to keep upgrading your skills in the meantime.</p>          <p>Your Submission ID: <strong>{{ $json.submission_id }}</strong></p>          <p>Best regards,<br>     <strong>HR Talent Acquisition Team</strong></p>   </div> </body> </html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1856,
+        256
+      ],
+      "id": "7c542e92-8ebf-4ef9-ae3e-ac2c88b376a1",
+      "name": "Send Invitation after Merit list1",
+      "webhookId": "be6a192a-6b37-41fb-895c-114f2c5115a8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "OH0BGi5phiKpxfhq",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.candidate_email }}",
+        "subject": "=Interview Invitation - {{ $json.job_position }} at Our Company",
+        "message": "=<html><body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>\n<div style='background: #1a1a2e; color: white; padding: 24px; border-radius: 8px 8px 0 0;'>\n  <h2 style='margin:0;'>🎉 Congratulations, {{ $json.candidate_name }}!</h2>\n</div>\n<div style='padding: 24px; background: #f9f9f9; border-radius: 0 0 8px 8px;'>\n  <p>We reviewed your application for <strong>{{ $json.job_position }}</strong> and we're impressed with your profile!</p>\n  <p><strong>Your match score:</strong> {{ $json.match_percentage }}%</p>\n  <p><strong>What stood out:</strong> {{ $json.strengths }}</p>\n  <div style='background: #e8f5e9; border-left: 4px solid #4CAF50; padding: 16px; margin: 16px 0;'>\n    <p style='margin:0;'><strong>Next Step:</strong> We'd like to invite you for a <strong>{{ $json.interview_type }} Interview</strong>.</p>\n    <p style='margin:8px 0 0;'>Our HR team will contact you within 2 business days to schedule the interview.</p>\n  </div>\n  <p>Your Submission ID: <strong>{{ $json.submission_id }}</strong></p>\n  <p>Best regards,<br><strong>HR Team</strong></p>\n</div>\n</body></html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "be95411a-8257-43af-a9c7-f61eef689852",
+      "name": "Send Interview Invite Merit List 1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        -176
+      ],
+      "webhookId": "f8ae4404-0c0b-4da4-a64d-018f711025ac"
+    },
+    {
+      "parameters": {
+        "content": "## Verification",
+        "height": 544,
+        "width": 1504,
+        "color": "#832121"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -3232,
+        544
+      ],
+      "typeVersion": 1,
+      "id": "1c8f65fd-6ab5-40b1-9987-6c27c0716ebd",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "67391bd1-5486-47dd-a740-7cd758ad283d",
+      "name": "Merge Resume + JD1",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -2480,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -2224,
+        944
+      ],
+      "id": "9f252ac4-2191-46b5-8d16-d4b27810eee3",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "NFzEpk00zDkLEUYx",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "c2ddb344-fe93-41e5-a145-24257ba64032",
+      "name": "Merge Resume + JD2",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -576,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Merge Info",
+        "height": 416,
+        "width": 672,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -3696,
+        -672
+      ],
+      "typeVersion": 1,
+      "id": "d3b4a873-b308-4f8d-9a95-51f533c0e72e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  const text = item.json.text || \"\"; \n  \n  // Updated Regex: Yeh https:// ke bina bhi kaam karega\n  const linkedinRegex = /((https?:\\/\\/)?(www\\.)?linkedin\\.com\\/in\\/[a-zA-Z0-9_-]+)/i;\n  \n  const match = text.match(linkedinRegex);\n  \n  // Agar link mil jaye toh save karein, nahi toh \"Not Found\"\n  item.json.linkedin_url = match ? match[0] : \"Not Found\";\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3152,
+        656
+      ],
+      "id": "4dc1d2b6-2af1-44ea-9818-d2119861234b",
+      "name": "Extract the link"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"profileScraperMode\": \"Profile details no email ($4 per 1k)\",\n    \"queries\": [\n        \"{{ $json.linkedin_url }}\"\n    ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -2928,
+        656
+      ],
+      "id": "f00f85eb-52b7-4e3a-a064-a3cef5d5c1ee",
+      "name": "Scrape the profile"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  const profile = item.json;\n\n  // 1. Extract Experience (Sirf candidate ka)\n  const experience = (profile.experience || []).map(exp => ({\n    title: exp.position,\n    company: exp.companyName,\n    startDate: exp.startDate ? exp.startDate.text : 'N/A',\n    endDate: exp.endDate ? exp.endDate.text : 'Present',\n    description: exp.description\n  }));\n\n  // 2. Extract Education\n  const education = (profile.education || []).map(edu => ({\n    school: edu.schoolName,\n    degree: edu.degree,\n    field: edu.fieldOfStudy\n  }));\n\n  // 3. Extract Skills\n  const skills = (profile.skills || []).map(s => s.name);\n\n  // 4. Final Clean Object (Isme 'moreProfiles' nahi hai)\n  item.json.clean_linkedin_data = {\n    full_name: `${profile.firstName} ${profile.lastName}`,\n    headline: profile.headline,\n    location: profile.location ? profile.location.linkedinText : 'N/A',\n    experience_summary: experience,\n    education_summary: education,\n    skills_list: skills\n  };\n\n  // Optional: Purana saara kachra data delete karne ke liye\n  // Taaki AI ko sirf 'clean_linkedin_data' hi dikhe\n  const cleanData = item.json.clean_linkedin_data;\n  item.json = { clean_linkedin_data: cleanData };\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2704,
+        656
+      ],
+      "id": "81842834-2cb3-402b-b6ff-b2257b01b8ae",
+      "name": "Get the neccesary info"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert Forensic Recruitment Auditor with 15 years of experience in background verification.\nYour task is to cross-reference the provided \"Resume Text\" with the \"LinkedIn Scraped Data\" to find discrepancies, hidden gaps, or fabrications.\n\nINPUTS:\n1. Resume Text: {{ $json.text }}\n2. LinkedIn Data: \n\nVERIFICATION GUIDELINES:\n- Compare Company Names: Do they match exactly?\n- Compare Employment Dates: Check for date inflations in the resume.\n- Compare Job Titles: Is a 'Freelancer' on LinkedIn being called a 'Senior Lead' on the resume?\n- Skill Consistency: Are the skills mentioned in the resume also reflected in LinkedIn's 'Top Skills' or 'Headline'?\n- Education Check: Verify degree and university matches.\n\nOUTPUT FORMAT (Strict JSON):\nReturn ONLY a JSON object with this structure:\n{\n  \"verification_status\": \"MATCHED\" | \"MISMATCHED\" | \"PARTIAL_MATCH\",\n  \"discrepancies\": [\n    \"List specific differences found (e.g., Job title mismatch at Company X)\",\n    \"List date gaps found\"\n  ],\n  \"authenticity_score\": <integer 0-100>,\n  \"verification_summary\": \"A 2-sentence summary of the profile's honesty.\"\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -2256,
+        720
+      ],
+      "id": "8ac1893a-f071-4420-b215-1faeda552277",
+      "name": "Verify Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawOutput = $input.item.json.output;\nconst parsed = JSON.parse(rawOutput);\nreturn {\n  ...parsed\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1904,
+        720
+      ],
+      "id": "974f87a4-5748-486e-8bd2-21892b4b2b2c",
+      "name": "Output in the readable Form"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert Senior HR Recruiter and Fraud Detection Specialist. \nAnalyze the candidate's resume against the Job Description AND cross-verify it with the LinkedIn Verification Report provided.\n\nReturn ONLY a valid JSON object. No explanation, no markdown.\n\nCANDIDATE DETAILS:\nName: {{ $json.text.split('\\n')[0] }}\nPosition Applied: {{ $json['Job Title'] }}\n\nRESUME TEXT:\n{{ $json.text }}\n\nJOB DESCRIPTION:\nJob Title: {{ $json['Job Title'] }}\nRequired Skills: {{ $json['Required Skills'] }}\nExperience Required: {{ $json['Experience Required'] }}\n\nVERIFICATION REPORT (LinkedIn vs Resume):\nStatus: {{ $json.verification_status }}\nAuthenticity Score: {{ $json.authenticity_score }}/100\nMajor Discrepancies: {{ $json.discrepancies.join(\", \") }}\nVerification Summary: {{ $json.verification_summary }}\n\nSCORING RULES (STRICT):\n1. If Authenticity Score is below 50, the final \"score\" MUST be 0 or 1, and \"decision\" MUST be \"REJECTED\".\n2. If Status is \"MISMATCHED\", prioritize the discrepancies over the resume skills.\n3. If the candidate has lied about Education or Job Titles, flag it in the summary.\n\nReturn ONLY this JSON structure:\n{\n  \"score\": <integer 1-10>,\n  \"decision\": \"SHORTLISTED\" or \"REJECTED\" or \"MAYBE\",\n  \"match_percentage\": <integer 0-100>,\n  \"authenticity_flag\": \"FAILED\" or \"PASSED\",\n  \"strengths\": [\"list strengths from resume\"],\n  \"gaps\": [\"list missing skills AND mention verification mismatches\"],\n  \"summary\": \"Mention that the candidate failed background verification due to mismatched LinkedIn data.\",\n  \"recommended_interview_type\": \"None\"\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -352,
+        48
+      ],
+      "id": "5adec2f3-5db7-45af-ba54-fbe1d632dfe6",
+      "name": "Finale Scoring results"
+    },
+    {
+      "parameters": {
+        "content": "## Merit list 1 based on the score that are greater then 7",
+        "height": 320,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1760,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "f6979d5f-c4dd-483c-a79a-1f45a69b2de5",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Merit list 1 based on the score that are greater then 5 and less then the 7",
+        "height": 320,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1760,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "908430ee-0f53-40f4-a64c-18f16e14c36c",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Not selected Candidate",
+        "height": 288
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1792,
+        544
+      ],
+      "typeVersion": 1,
+      "id": "3f395760-1d72-4a9f-8321-13d0376d21ec",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.candidate_email }}",
+        "subject": "=Your Application for {{ $json.job_position }} - Update",
+        "message": "=<html><body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>\n<div style='background: #2d2d2d; color: white; padding: 24px; border-radius: 8px 8px 0 0;'>\n  <h2 style='margin:0;'>Application Update</h2>\n</div>\n<div style='padding: 24px; background: #f9f9f9; border-radius: 0 0 8px 8px;'>\n  <p>Dear {{ $json.candidate_name }},</p>\n  <p>Thank you for applying for the <strong>{{ $json.job_position }}</strong> position and taking the time to submit your application.</p>\n  <p>After careful review, we regret to inform you that we will not be moving forward with your application at this time, as we are looking for candidates whose experience more closely matches our current requirements.</p>\n  <p>We appreciate your interest in our company and encourage you to apply for future openings that match your profile.</p>\n  <p>We wish you the very best in your job search.</p>\n  <p>Warm regards,<br><strong>HR Team</strong></p>\n</div>\n</body></html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "a337de16-45a1-4dac-aea5-5d401dc888da",
+      "name": "Send Rejection Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        640
+      ],
+      "webhookId": "88a14310-c99c-431a-9ef6-467a3fed14c2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "OH0BGi5phiKpxfhq",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Final Scoring",
+        "height": 480,
+        "width": 864
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -672,
+        -64
+      ],
+      "typeVersion": 1,
+      "id": "db2af25e-967c-45fe-8bc1-b0d509693b6b",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Slack for the HR to see the mail",
+        "height": 272,
+        "width": 288
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4400,
+        64
+      ],
+      "typeVersion": 1,
+      "id": "a89eb1cc-d592-4d89-8000-5c07d0756d26",
+      "name": "Sticky Note6"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Finale Scoring results",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Form Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack HR Alert": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Score >= 7?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Resume + JD": {
+      "main": [
+        [
+          {
+            "node": "Extract the link",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Resume + JD1",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Merge Resume + JD2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Job Description": {
+      "main": [
+        [
+          {
+            "node": "Merge Resume + JD",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Extract Resume Text": {
+      "main": [
+        [
+          {
+            "node": "Merge Resume + JD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Application Form": {
+      "main": [
+        [
+          {
+            "node": "Get Job Description",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Resume Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score >= 7?": {
+      "main": [
+        [
+          {
+            "node": "Send Interview Invite Merit List 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send Rejection Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send Invitation after Merit list1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Interview Invite Merit List 1": {
+      "main": [
+        [
+          {
+            "node": "Slack HR Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Invitation after Merit list1": {
+      "main": [
+        [
+          {
+            "node": "Slack HR Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Resume + JD1": {
+      "main": [
+        [
+          {
+            "node": "Verify Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Verify Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Resume + JD2": {
+      "main": [
+        [
+          {
+            "node": "Finale Scoring results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract the link": {
+      "main": [
+        [
+          {
+            "node": "Scrape the profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape the profile": {
+      "main": [
+        [
+          {
+            "node": "Get the neccesary info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get the neccesary info": {
+      "main": [
+        [
+          {
+            "node": "Merge Resume + JD1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Agent": {
+      "main": [
+        [
+          {
+            "node": "Output in the readable Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output in the readable Form": {
+      "main": [
+        [
+          {
+            "node": "Merge Resume + JD2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Finale Scoring results": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Rejection Email": {
+      "main": [
+        [
+          {
+            "node": "Slack HR Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f216a986-1fcb-4c04-8a8f-ab0b89bbf7af",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7856284854afaac3d1d79cf9f4dd3273a3c0da7979365749d747006784c20ffc"
+  },
+  "id": "5kRNgnuJeSFF8NFW",
+  "tags": [
+    {
+      "updatedAt": "2026-05-12T07:37:46.236Z",
+      "createdAt": "2026-05-12T07:37:46.236Z",
+      "id": "kMz2R71bGNObrNjw",
+      "name": "Resume Screening"
+    },
+    {
+      "updatedAt": "2026-05-12T07:37:46.276Z",
+      "createdAt": "2026-05-12T07:37:46.276Z",
+      "id": "xjMF58ExK1WtZWRS",
+      "name": "HR Automation"
+    }
+  ]
+}
